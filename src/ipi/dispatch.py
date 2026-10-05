@@ -21,6 +21,9 @@ from ipi.trajectory import Episode
 from ipi.types import Decision, DefenseContext, Observation, ProposedCall, Verdict
 
 
+BLOCK_PREFIX = "Tool call blocked by security policy."
+
+
 class EscalationPolicy(str, Enum):
     DENY = "deny"    # no human in the loop: escalation == block (conservative; default for reported numbers)
     ALLOW = "allow"  # optimistic human who always approves: upper bound on utility, lower bound on security
@@ -121,7 +124,7 @@ class GuardedToolsExecutor(BasePipelineElement):
                 results.append(self._tool_msg(tc, text, error))
                 obs = Observation(call, decision, True, text, error)
             else:
-                msg = "Tool call blocked by security policy."
+                msg = BLOCK_PREFIX
                 if self.reveal_block_reason and decision.reason:
                     msg += f" Reason: {decision.reason}"
                 results.append(self._tool_msg(tc, "", msg))

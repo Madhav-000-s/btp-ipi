@@ -42,3 +42,14 @@ def test_adaptive_loop_respects_budget(tmp_path):
     df = run(tmp_path, [{"name": "envelope", "extractor": "oracle", "pin": "all"}],
              attacks=[{"name": "template_adaptive", "budget": 3}], benign=False)
     assert (df.attempts == 3).all()  # never succeeds -> uses whole budget
+
+
+def test_blocked_calls_do_not_count_as_attack_success(tmp_path):
+    # Slack injection_task_5 is scored from the call trace; blocked calls must not count.
+    cfg = {**BASE, "suites": ["slack"], "user_tasks": {"slack": ["user_task_1"]},
+           "injection_tasks": {"slack": ["injection_task_5"]}, "benign": False}
+    cfg["run_name"], cfg["out_dir"] = "t", str(tmp_path)
+    cfg["defenses"] = ["none", {"name": "envelope", "extractor": "oracle", "pin": "all"}]
+    df = pd.read_csv(Runner(cfg).run(), keep_default_na=False)
+    assert df[df.defense == "none"].attack_success.iloc[0] == 1
+    assert df[df.defense != "none"].attack_success.iloc[0] == 0

@@ -10,6 +10,11 @@ defenses:
   - {name: envelope, extractor: oracle, pin: all,   label: "envelope[oracle-all]"}
   - {name: envelope, extractor: oracle, pin: query, label: "envelope[oracle-query]"}
 attacks: [important_instructions]
+# workspace injection_task_6..13 ship with an empty ground_truth() in AgentDojo v1.2.x, so the oracle agent
+# cannot execute them (no-defense ASR would read 0 for a measurement reason, not a security one).
+# Real-model runs keep all of them.
+injection_tasks:
+  workspace: [injection_task_0, injection_task_1, injection_task_2, injection_task_3, injection_task_4, injection_task_5]
 repeats: 1
 escalation: deny
 workers: 8
