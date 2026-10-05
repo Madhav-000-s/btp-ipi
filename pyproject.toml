@@ -1,0 +1,28 @@
+[project]
+name = "ipi"
+version = "0.1.0"
+description = "Adaptive evaluation of system-level prompt-injection defenses + privilege-envelope runtime monitor (IIIT Kottayam BTP)"
+requires-python = ">=3.10"
+dependencies = [
+  "agentdojo==0.1.35",   # pinned: results are only comparable at a fixed benchmark version
+  "pyyaml",
+  "pandas",
+  "tabulate",
+]
+
+[project.optional-dependencies]
+dev = ["pytest"]
+
+[project.scripts]
+ipi = "ipi.cli:main"
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+"ipi.defenses" = ["*.yaml"]
+"ipi.defenses.envelope" = ["*.yaml"]

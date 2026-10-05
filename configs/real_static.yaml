@@ -1,0 +1,21 @@
+# First real-model run: static attack, all baselines, one suite. Validate against AgentDojo's published
+# no-defense numbers for this model BEFORE trusting anything else (Analysis workstream owns this check).
+#
+# Cheap backbone for development; swap to a stronger model only for final reported numbers.
+# Any OpenAI-compatible endpoint works:
+#   export OPENAI_COMPAT_BASE_URL=https://openrouter.ai/api/v1  OPENAI_COMPAT_API_KEY=...
+run_name: real_static_banking
+benchmark_version: v1.2.2
+suites: [banking]
+model: {provider: openai, name: gpt-4o-mini-2024-07-18}
+defenses:
+  - none
+  - {name: tool_filter, selector: llm, provider: openai, model: gpt-4o-mini-2024-07-18}
+  - policy
+  - {name: envelope, extractor: oracle, pin: query, label: "envelope[oracle-query]"}
+  - {name: envelope, extractor: llm, provider: openai, model: gpt-4o-mini-2024-07-18, label: "envelope[llm]"}
+attacks: [important_instructions, tool_knowledge]
+repeats: 1          # raise to 5 for reported numbers
+escalation: deny
+workers: 8
+use_cache: true

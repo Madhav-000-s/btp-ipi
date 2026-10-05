@@ -1,0 +1,99 @@
+# Tool taxonomy for AgentDojo v1.2.x suites.
+#
+# effect: what kind of authority the call exercises. Ordered by severity:
+#   read            - observes state, no side effects
+#   write_self      - mutates user-owned state, nothing leaves the user's domain (create file, calendar event)
+#   write_shared    - mutates state other principals can see (channel post, add participant, share file)
+#   external_comm   - sends data to a principal (email, DM, webpage post)   <- exfiltration sink
+#   financial       - moves money or commits to a purchase/reservation
+#   account_admin   - changes credentials, identity, membership
+#   destructive     - deletes or cancels
+#
+# sinks: arguments that name *who/what receives the effect* (recipient, IBAN, URL, user, file to share).
+#        These are the args the envelope pins. Changing a sink is privilege expansion even if the tool is allowed.
+# payload: arguments that carry content. Not pinned by default (content is where helpful 3rd-party
+#          instructions legitimately flow), but logged and available to the checker.
+#
+# DEFENSE WORKSTREAM OWNS THIS FILE. Review every entry; it is a modelling decision and goes in the thesis.
+
+workspace:
+  send_email:            {effect: external_comm, sinks: [recipients, cc, bcc], payload: [subject, body, attachments]}
+  delete_email:          {effect: destructive,   sinks: [email_id]}
+  get_unread_emails:     {effect: read}
+  get_sent_emails:       {effect: read}
+  get_received_emails:   {effect: read}
+  get_draft_emails:      {effect: read}
+  search_emails:         {effect: read}
+  search_contacts_by_name:  {effect: read}
+  search_contacts_by_email: {effect: read}
+  get_current_day:       {effect: read}
+  search_calendar_events:   {effect: read}
+  get_day_calendar_events:  {effect: read}
+  create_calendar_event: {effect: write_shared,  sinks: [participants], payload: [title, description, location, start_time, end_time]}
+  cancel_calendar_event: {effect: destructive,   sinks: [event_id]}
+  reschedule_calendar_event: {effect: write_shared, sinks: [event_id], payload: [new_start_time, new_end_time]}
+  add_calendar_event_participants: {effect: write_shared, sinks: [event_id, participants]}
+  append_to_file:        {effect: write_self,    sinks: [file_id], payload: [content]}
+  search_files_by_filename: {effect: read}
+  create_file:           {effect: write_self,    payload: [filename, content]}
+  delete_file:           {effect: destructive,   sinks: [file_id]}
+  get_file_by_id:        {effect: read}
+  list_files:            {effect: read}
+  share_file:            {effect: external_comm, sinks: [file_id, email, permission]}
+  search_files:          {effect: read}
+
+travel:
+  get_user_information:  {effect: read}
+  get_all_hotels_in_city: {effect: read}
+  get_hotels_prices:     {effect: read}
+  get_rating_reviews_for_hotels: {effect: read}
+  get_hotels_address:    {effect: read}
+  get_all_restaurants_in_city: {effect: read}
+  get_cuisine_type_for_restaurants: {effect: read}
+  get_restaurants_address: {effect: read}
+  get_rating_reviews_for_restaurants: {effect: read}
+  get_dietary_restrictions_for_all_restaurants: {effect: read}
+  get_contact_information_for_restaurants: {effect: read}
+  get_price_for_restaurants: {effect: read}
+  check_restaurant_opening_hours: {effect: read}
+  get_all_car_rental_companies_in_city: {effect: read}
+  get_car_types_available: {effect: read}
+  get_rating_reviews_for_car_rental: {effect: read}
+  get_car_fuel_options:  {effect: read}
+  get_car_rental_address: {effect: read}
+  get_car_price_per_day: {effect: read}
+  create_calendar_event: {effect: write_shared,  sinks: [participants], payload: [title, description, location, start_time, end_time]}
+  search_calendar_events: {effect: read}
+  get_day_calendar_events: {effect: read}
+  cancel_calendar_event: {effect: destructive,   sinks: [event_id]}
+  reserve_hotel:         {effect: financial,     sinks: [hotel], payload: [start_day, end_day]}
+  reserve_car_rental:    {effect: financial,     sinks: [company], payload: [start_time, end_time]}
+  reserve_restaurant:    {effect: financial,     sinks: [restaurant], payload: [start_time]}
+  get_flight_information: {effect: read}
+  send_email:            {effect: external_comm, sinks: [recipients, cc, bcc], payload: [subject, body, attachments]}
+
+banking:
+  get_iban:              {effect: read}
+  send_money:            {effect: financial,     sinks: [recipient, amount], payload: [subject, date]}
+  schedule_transaction:  {effect: financial,     sinks: [recipient, amount, recurring], payload: [subject, date]}
+  update_scheduled_transaction: {effect: financial, sinks: [id, recipient, amount, recurring], payload: [subject, date]}
+  get_balance:           {effect: read}
+  get_most_recent_transactions: {effect: read}
+  get_scheduled_transactions: {effect: read}
+  read_file:             {effect: read}
+  get_user_info:         {effect: read}
+  update_password:       {effect: account_admin, sinks: [password]}
+  update_user_info:      {effect: account_admin, sinks: [first_name, last_name, street, city]}
+
+slack:
+  get_channels:          {effect: read}
+  add_user_to_channel:   {effect: account_admin, sinks: [user, channel]}
+  read_channel_messages: {effect: read}
+  read_inbox:            {effect: read}
+  send_direct_message:   {effect: external_comm, sinks: [recipient], payload: [body]}
+  send_channel_message:  {effect: write_shared,  sinks: [channel], payload: [body]}
+  get_users_in_channel:  {effect: read}
+  invite_user_to_slack:  {effect: account_admin, sinks: [user, user_email]}
+  remove_user_from_slack: {effect: destructive,  sinks: [user]}
+  get_webpage:           {effect: read,          sinks: [url]}   # GET with attacker-chosen URL is an exfil channel (query string)
+  post_webpage:          {effect: external_comm, sinks: [url], payload: [content]}

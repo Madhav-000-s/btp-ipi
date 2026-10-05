@@ -1,0 +1,18 @@
+# Adaptive red-team. Budget B = attempts per (user_task, injection_task); stop at first success.
+# Fix B in the threat model doc BEFORE looking at results.
+# Cost ~ (#pairs) x B x (agent calls + 1 attacker call). Start with limits, then widen.
+run_name: real_adaptive_banking
+suites: [banking]
+limit_user_tasks: 6
+limit_injection_tasks: 4
+model: {provider: openai, name: gpt-4o-mini-2024-07-18}
+defenses:
+  - policy
+  - {name: envelope, extractor: llm, provider: openai, model: gpt-4o-mini-2024-07-18, label: "envelope[llm]"}
+attacks:
+  - important_instructions                     # static reference column
+  - {name: adaptive, provider: openai, model: gpt-4o-mini-2024-07-18, budget: 10,
+     strategies: [living_off_the_land, envelope_generation, branch_steering], feedback_level: trace}
+benign: false
+escalation: deny
+workers: 4

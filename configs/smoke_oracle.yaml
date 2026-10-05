@@ -1,0 +1,15 @@
+# Offline, zero-cost smoke test. Validates the harness and the defenses' gates (not model robustness).
+run_name: smoke_oracle
+benchmark_version: v1.2.2
+suites: [banking, slack, travel, workspace]
+model: {provider: oracle, name: gullible-oracle}
+defenses:
+  - none
+  - {name: tool_filter, selector: oracle}
+  - policy
+  - {name: envelope, extractor: oracle, pin: all,   label: "envelope[oracle-all]"}
+  - {name: envelope, extractor: oracle, pin: query, label: "envelope[oracle-query]"}
+attacks: [important_instructions]
+repeats: 1
+escalation: deny
+workers: 8

@@ -1,0 +1,12 @@
+# ~1 minute, offline, zero cost. Run before every commit.
+run_name: quick
+suites: [banking]
+model: {provider: oracle, name: gullible-oracle}
+defenses:
+  - none
+  - {name: tool_filter, selector: oracle}
+  - policy
+  - {name: envelope, extractor: oracle, pin: all,   label: "envelope[oracle-all]"}
+  - {name: envelope, extractor: oracle, pin: query, label: "envelope[oracle-query]"}
+attacks: [important_instructions]
+workers: 4
