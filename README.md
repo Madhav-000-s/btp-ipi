@@ -7,6 +7,8 @@ IIIT Kottayam B.Tech project. Two parts, one harness:
 
 Scope: indirect prompt injection, single-agent tool calling, text only, AgentDojo sandbox (mock tools).
 
+Full project context (motivation, threat model, defenses, attacker, monitor design, status): [docs/project_context.md](docs/project_context.md).
+
 ## Quickstart
 
 ```bash
