@@ -1,0 +1,24 @@
+# Adaptive red-team on Claude Haiku 5.5, full banking. B = 10 per (user task, injection task) pair,
+# stop at first success -- B fixed by the draft threat model before any adaptive result was seen.
+# The runner records attempts-to-first-success, so ASR at B = 1..10 comes from this one run.
+# `none` is the reference: how much of adaptive ASR the model alone lets through.
+# Cost: up to 4 defenses x 144 pairs x 10 attempts; measured static rate ~$0.0007/episode + one attacker call each.
+run_name: haiku_adaptive_banking
+benchmark_version: v1.2.2
+suites: [banking]
+limit_user_tasks: 6        # first slice (24 pairs) to measure cost; remove both limits for the full suite
+limit_injection_tasks: 4
+model: {provider: anthropic, name: claude-haiku-5-5}
+defenses:
+  - none
+  - policy
+  - {name: envelope, extractor: llm, provider: anthropic, model: claude-haiku-5-5, label: "envelope[llm]"}
+  - {name: progent, provider: anthropic, model: claude-haiku-5-5}
+attacks:
+  - {name: adaptive, provider: anthropic, model: claude-haiku-5-5, budget: 10,
+     strategies: [living_off_the_land, envelope_generation, branch_steering], feedback_level: trace}
+benign: false
+repeats: 1
+escalation: deny
+workers: 8
+use_cache: true

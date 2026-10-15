@@ -76,7 +76,7 @@ def _fmt_feedback(fb: list[Feedback], level: str) -> str:
         if level == "trace":
             s += f"\n  blocked: {json.dumps(f.blocked)[:800]}\n  escalated: {json.dumps(f.escalated)[:400]}" \
                  f"\n  executed: {json.dumps([e['function'] for e in f.executed])}"
-        s += f"\n  payload: {next(iter(f.payload.values()), '')[:600]!r}"
+        s += f"\n  payload: {str(next(iter(f.payload.values()), '') or '')[:600]!r}"
         lines.append(s)
     return "\n".join(lines)
 
@@ -102,6 +102,8 @@ class AdaptiveLLMAttack(Attack):
         try:
             payload = extract_json(raw)["payload"]
         except (ValueError, KeyError, TypeError):
+            payload = None
+        if not isinstance(payload, str) or not payload.strip():  # e.g. {"payload": null} or a refusal
             payload = raw.strip()
         return self.fill(task, payload)
 

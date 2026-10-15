@@ -258,7 +258,12 @@ class Runner:
             with ThreadPoolExecutor(max_workers=workers) as pool:
                 futs = {pool.submit(self.run_job, j): j for j in todo}
                 for n, fut in enumerate(as_completed(futs), 1):
-                    row = fut.result()
+                    try:
+                        row = fut.result()
+                    except Exception as e:  # one broken job (e.g. attacker output) must not kill the grid
+                        j = futs[fut]
+                        row = self._row(j, str(j.attack or "none"), str(j.defense), 0, False, False, [], 0.0,
+                                        f"{type(e).__name__}: {e}"[:500])
                     row["_key"] = self._key(futs[fut])
                     with self._csv_lock:
                         w.writerow({k: row[k] for k in RESULT_FIELDS})
