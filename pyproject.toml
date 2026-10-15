@@ -8,6 +8,8 @@ dependencies = [
   "pyyaml",
   "pandas",
   "tabulate",
+  # Progent authors' package (MIT), pinned: our progent defense wraps it rather than reimplementing it
+  "secagent @ git+https://github.com/sunblaze-ucb/progent@5be7b63fa96f70bc19b72fbcee81f1c0bcc1a565",
 ]
 
 [project.optional-dependencies]

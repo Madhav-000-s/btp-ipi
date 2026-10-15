@@ -6,6 +6,7 @@
     - {name: policy}
     - {name: envelope, extractor: oracle, pin: query}
     - {name: envelope, extractor: llm, provider: openai, model: gpt-4o-mini-2024-07-18, unpinned_untrusted: escalate}
+    - {name: progent, provider: anthropic, model: claude-haiku-5-5}     # authors' secagent; update: false to freeze
 
 To add a defense (e.g. a CaMeL or Progent reproduction): implement ipi.defenses.base.Defense and register
 a builder below. Nothing else in the harness changes.
@@ -35,7 +36,13 @@ BUILDERS = {
     "policy": lambda p: PolicyDefense(p.get("policy_file")),
     "envelope": _envelope,
     "chain": lambda p: Chain([build_defense(d) for d in p["defenses"]]),
+    "progent": lambda p: _progent(p),
 }
+
+
+def _progent(p: dict) -> Defense:
+    from ipi.defenses.progent import ProgentDefense  # imports the authors' secagent package
+    return ProgentDefense(p["provider"], p["model"], p.get("update", True))
 
 
 def build_defense(spec: str | dict) -> Defense:

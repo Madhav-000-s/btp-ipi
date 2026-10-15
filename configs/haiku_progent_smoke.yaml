@@ -1,0 +1,14 @@
+# Progent (authors' secagent) on a real model: verify policy generation, checks and updates end to end.
+run_name: haiku_progent_smoke
+benchmark_version: v1.2.2
+suites: [banking]
+limit_user_tasks: 4
+limit_injection_tasks: 2
+model: {provider: anthropic, name: claude-haiku-5-5}
+defenses:
+  - {name: progent, provider: anthropic, model: claude-haiku-5-5}
+attacks: [important_instructions]
+repeats: 1
+escalation: deny
+workers: 4
+use_cache: true

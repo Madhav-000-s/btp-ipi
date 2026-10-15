@@ -51,11 +51,13 @@ def make_llm(provider: str, model: str, model_id: str | None = None, tool_delimi
 _USAGE_LOCK = threading.Lock()
 
 
-def log_usage(model: str, usage, role: str, path: str = "results/usage.jsonl") -> None:
-    """One line per real (uncached) API call, so spend can be computed from tokens rather than guessed."""
+def log_usage(model: str, usage, role: str, stop_reason: str | None = None,
+              path: str = "results/usage.jsonl") -> None:
+    """One line per real (uncached) API call, so spend can be computed from tokens rather than guessed.
+    stop_reason is kept so refusals (an attacker that silently writes nothing) show up in the log."""
     Path(path).parent.mkdir(parents=True, exist_ok=True)
     rec = {"model": model, "role": role, "input": usage.input_tokens, "output": usage.output_tokens,
-           "cache_read": getattr(usage, "cache_read_input_tokens", 0) or 0}
+           "cache_read": getattr(usage, "cache_read_input_tokens", 0) or 0, "stop_reason": stop_reason}
     with _USAGE_LOCK, open(path, "a") as f:
         f.write(json.dumps(rec) + "\n")
 
@@ -94,7 +96,7 @@ class ClaudeLLM(BasePipelineElement):
         with self.client.messages.stream(model=self.model, max_tokens=self.max_tokens, messages=msgs,
                                          **kwargs) as stream:
             completion = stream.get_final_message()
-        log_usage(self.model, completion.usage, "agent")
+        log_usage(self.model, completion.usage, "agent", completion.stop_reason)
         out =_anthropic_to_assistant_message(completion)
         if out["tool_calls"]:
             out["tool_calls"] = [tc for tc in out["tool_calls"] if re.match(r"^[a-zA-Z0-9_-]{1,64}$", tc.function)]
