@@ -8,13 +8,25 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 from pathlib import Path
 
 from ipi import metrics
 from ipi.runner import Runner, load_config
 
 
+def _load_dotenv(path: str = ".env"):
+    """KEY=value lines from a git-ignored .env; values already in the environment win."""
+    if not os.path.exists(path):
+        return
+    for line in open(path, encoding="utf-8"):
+        k, sep, v = line.strip().partition("=")
+        if sep and k and not k.startswith("#"):
+            os.environ.setdefault(k.strip(), v.strip().strip("\"'"))
+
+
 def main():
+    _load_dotenv()
     ap = argparse.ArgumentParser(prog="ipi")
     sub = ap.add_subparsers(dest="cmd", required=True)
     r = sub.add_parser("run")

@@ -2,3 +2,5 @@ results/
 __pycache__/
 *.egg-info/
 .env
+.venv/
+.pytest_cache/

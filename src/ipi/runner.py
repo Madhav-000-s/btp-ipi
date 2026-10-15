@@ -141,7 +141,8 @@ class Runner:
         if mc["provider"] == "oracle":
             llm = GullibleOracleLLM()
         else:
-            inner = make_llm(mc["provider"], mc["name"], mc.get("model_id"), mc.get("tool_delimiter", "tool"))
+            inner = make_llm(mc["provider"], mc["name"], mc.get("model_id"), mc.get("tool_delimiter", "tool"),
+                             mc.get("effort"))
             llm = CachedLLM(inner, self.cfg.get("cache", "results/cache/llm.sqlite"), salt=f"r{repeat}") \
                 if self.cfg.get("use_cache", True) else inner
         executor = GuardedToolsExecutor(

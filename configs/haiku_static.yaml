@@ -1,0 +1,17 @@
+# First real-model grid on Claude Haiku 5.5: static attacks, all baselines, banking.
+# 5 defenses x (16 benign + 2 attacks x 16 user x 9 injection tasks) = 1,520 episodes. Run haiku_smoke first.
+run_name: haiku_static_banking
+benchmark_version: v1.2.2
+suites: [banking]
+model: {provider: anthropic, name: claude-haiku-5-5}
+defenses:
+  - none
+  - {name: tool_filter, selector: llm, provider: anthropic, model: claude-haiku-5-5}
+  - policy
+  - {name: envelope, extractor: oracle, pin: query, label: "envelope[oracle-query]"}
+  - {name: envelope, extractor: llm, provider: anthropic, model: claude-haiku-5-5, label: "envelope[llm]"}
+attacks: [important_instructions, tool_knowledge]
+repeats: 1          # raise to 5 for reported numbers
+escalation: deny
+workers: 8
+use_cache: true

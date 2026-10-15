@@ -1,0 +1,16 @@
+# Cents. Verifies the Claude path end to end (agent + LLM extractor + static attack) and measures tokens per
+# episode before committing to a full grid. Check results/usage.jsonl afterwards.
+run_name: haiku_smoke
+benchmark_version: v1.2.2
+suites: [banking]
+limit_user_tasks: 3
+limit_injection_tasks: 1
+model: {provider: anthropic, name: claude-haiku-5-5}
+defenses:
+  - none
+  - {name: envelope, extractor: llm, provider: anthropic, model: claude-haiku-5-5, label: "envelope[llm]"}
+attacks: [important_instructions]
+repeats: 1
+escalation: deny
+workers: 4
+use_cache: true

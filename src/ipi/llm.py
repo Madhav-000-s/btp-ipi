@@ -1,6 +1,7 @@
 """LLM backends.
 
-- `make_llm(provider, model)` : real models via AgentDojo (openai, anthropic, google, together, local, vllm)
+- `make_llm(provider, model)` : real models via AgentDojo (openai, anthropic, google, together, local, vllm);
+  current Claude models go through `ClaudeLLM` instead of AgentDojo's AnthropicLLM (see its docstring)
   plus `openai-compat` for any OpenAI-compatible endpoint (OpenRouter, Groq, DeepInfra, a local vLLM)
   configured with OPENAI_COMPAT_BASE_URL / OPENAI_COMPAT_API_KEY.
 - `CachedLLM` : disk cache so identical (model, messages, tools, repeat) never hits the API twice.
@@ -15,6 +16,7 @@ from __future__ import annotations
 import hashlib
 import json
 import os
+import re
 import sqlite3
 import threading
 from collections.abc import Sequence
@@ -25,8 +27,11 @@ from agentdojo.functions_runtime import EmptyEnv, Env, FunctionCall, FunctionsRu
 from agentdojo.types import ChatAssistantMessage, ChatMessage, get_text_content_as_str, text_content_block_from_string
 
 
-def make_llm(provider: str, model: str, model_id: str | None = None, tool_delimiter: str = "tool"):
-    if provider == "openai-compat":
+def make_llm(provider: str, model: str, model_id: str | None = None, tool_delimiter: str = "tool",
+             effort: str | None = None):
+    if provider == "anthropic" and not _legacy_claude(model):
+        llm = ClaudeLLM(model, effort=effort)
+    elif provider == "openai-compat":
         import openai
         from agentdojo.agent_pipeline.llms.openai_llm import OpenAILLM
 
@@ -41,6 +46,59 @@ def make_llm(provider: str, model: str, model_id: str | None = None, tool_delimi
         llm = get_llm(provider, model, model_id, tool_delimiter)
     llm.name = model
     return llm
+
+
+_USAGE_LOCK = threading.Lock()
+
+
+def log_usage(model: str, usage, role: str, path: str = "results/usage.jsonl") -> None:
+    """One line per real (uncached) API call, so spend can be computed from tokens rather than guessed."""
+    Path(path).parent.mkdir(parents=True, exist_ok=True)
+    rec = {"model": model, "role": role, "input": usage.input_tokens, "output": usage.output_tokens,
+           "cache_read": getattr(usage, "cache_read_input_tokens", 0) or 0}
+    with _USAGE_LOCK, open(path, "a") as f:
+        f.write(json.dumps(rec) + "\n")
+
+
+def _legacy_claude(model: str) -> bool:
+    """Claude 3.x: AgentDojo's own AnthropicLLM (temperature 0, 1024 max tokens) is what its published runs used."""
+    return model.startswith("claude-3")
+
+
+def accepts_sampling_params(model: str) -> bool:
+    """Current Claude models (Haiku/Sonnet/Opus 5.x, Opus 4.7+) reject non-default temperature/top_p with a 400."""
+    return not re.match(r"claude-(haiku|sonnet|opus|fable|mythos)-5|claude-opus-4-[78]", model)
+
+
+class ClaudeLLM(BasePipelineElement):
+    """Agent backbone for current Claude models. AgentDojo 0.1.35's AnthropicLLM sends temperature=0.0 (a 400 on
+    these models) and caps output at 1024 tokens, which adaptive thinking (on by default) can exhaust before the
+    tool call. Reuses AgentDojo's message conversion so thinking blocks round-trip unchanged."""
+
+    def __init__(self, model: str, effort: str | None = None, max_tokens: int = 16000):
+        import anthropic
+        self.client = anthropic.Anthropic()
+        self.model, self.effort, self.max_tokens = model, effort, max_tokens
+
+    def query(self, query, runtime: FunctionsRuntime, env: Env = EmptyEnv(), messages=[], extra_args={}):
+        from agentdojo.agent_pipeline.llms.anthropic_llm import (
+            _anthropic_to_assistant_message, _conversation_to_anthropic, _function_to_anthropic)
+
+        system, msgs = _conversation_to_anthropic(messages)
+        kwargs = {"system": system} if system else {}
+        if self.effort:
+            kwargs["output_config"] = {"effort": self.effort}
+        tools = [_function_to_anthropic(t) for t in runtime.functions.values()]
+        if tools:
+            kwargs["tools"] = tools
+        with self.client.messages.stream(model=self.model, max_tokens=self.max_tokens, messages=msgs,
+                                         **kwargs) as stream:
+            completion = stream.get_final_message()
+        log_usage(self.model, completion.usage, "agent")
+        out =_anthropic_to_assistant_message(completion)
+        if out["tool_calls"]:
+            out["tool_calls"] = [tc for tc in out["tool_calls"] if re.match(r"^[a-zA-Z0-9_-]{1,64}$", tc.function)]
+        return query, runtime, env, [*messages, out], extra_args
 
 
 # ---------------------------------------------------------------------------------------------

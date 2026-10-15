@@ -6,8 +6,13 @@ from __future__ import annotations
 from types import SimpleNamespace
 
 from agentdojo.attacks.attack_registry import load_attack
+from agentdojo.models import MODEL_NAMES
 
 from ipi.attacks.base import Attack, AttackTask, Feedback
+
+# AgentDojo 0.1.35 only knows Claude 3.x ids; address current Claude models as "Claude", as its published runs did.
+for _m in ("claude-haiku-5", "claude-sonnet-5", "claude-opus-5", "claude-opus-4", "claude-fable-5"):
+    MODEL_NAMES.setdefault(_m, "Claude")
 
 
 class AgentDojoAttack(Attack):

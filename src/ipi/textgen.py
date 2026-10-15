@@ -37,11 +37,17 @@ def complete(prompt: str, *, provider: str, model: str, system: str = "", temper
 
     if provider == "anthropic":
         import anthropic
+
+        from ipi.llm import accepts_sampling_params, log_usage
+        kwargs = {"system": system} if system else {}
+        if accepts_sampling_params(model):
+            kwargs["temperature"] = temperature
+        else:
+            max_tokens = max(max_tokens, 16000)  # adaptive thinking is on by default and shares this budget
         r = anthropic.Anthropic().messages.create(
-            model=model, max_tokens=max_tokens, temperature=temperature, system=system or anthropic.NOT_GIVEN,
-            messages=[{"role": "user", "content": prompt}],
-        )
-        text = "".join(b.text for b in r.content if b.type == "text")
+            model=model, max_tokens=max_tokens, messages=[{"role": "user", "content": prompt}], **kwargs)
+        log_usage(model, r.usage, "aux")
+        text ="".join(b.text for b in r.content if b.type == "text")
     elif provider in ("openai", "openai-compat"):
         import openai
         client = openai.OpenAI() if provider == "openai" else openai.OpenAI(
