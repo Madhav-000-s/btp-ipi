@@ -13,7 +13,9 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-dev = ["pytest"]
+dev = ["pytest", "matplotlib"]
+# CaMeL authors' code (Apache-2.0), pinned; install with --no-deps (pydantic-ai is shimmed, see camel_defense.py)
+camel = ["camel @ git+https://github.com/google-research/camel-prompt-injection@f083b6b396399d3b3c7f2ddaf613a5945eaf32d8"]
 
 [project.scripts]
 ipi = "ipi.cli:main"

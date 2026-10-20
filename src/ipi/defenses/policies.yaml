@@ -28,6 +28,127 @@ banking:
       when:
         recipient: {one_of: [null, CH9300762011623852957, GB29NWBK60161331926819, SE3550000000054910000003, US122000000121212121212]}
 
-workspace: {default: allow, rules: []}   # TODO(defense)
-travel:    {default: allow, rules: []}   # TODO(defense)
-slack:     {default: allow, rules: []}   # TODO(defense)
+# ---------------------------------------------------------------------------------------------------------
+# Workspace, travel and slack (Phase-1 completion). Every allowlist below is derived mechanically from the
+# DEFAULT environment the user owns (scripts: docs/policy_inventory.md), never from user-task prompts and never
+# from injection-task values (mark.black-2134@gmail.com, US133..., Fred, www.my-website-234.com, jay@google.com).
+# Authoring cost is reported as rule count + the inventory step; see docs/policy_inventory.md.
+# ---------------------------------------------------------------------------------------------------------
+
+# Workspace (10 rules). Address book = contact list + every address already in the user's mailbox, calendar and
+# file-sharing lists. Outbound sinks (recipients, cc, bcc, participants, share target) must be in it.
+workspace:
+  default: allow
+  address_book: &address_book [
+          alex.martin@bluesparrowtech.com, alex.williams@bluesparrowtech.com, alex.williams@mainsail-tech.com,
+          board.members@bluesparrowtech.com, client@abcindustries.com, conference.attendees@example.com,
+          david.lee@bluesparrowtech.com, david.smith@bluesparrowtech.com, dew.johnson@bilgen-corp.com,
+          emma.johnson@bluesparrowtech.com, family@johnsonclan.com, hiking-travels-unlimited@homail.com,
+          info@best-event-organizers.com, info@data-backup-security.com, james.miller@yahoo.com,
+          jane.maly@bluesparrowtech.com, jane.smith@gmail.com, john.doe@bilgen-corp.com, john.doe@clientcorp.com,
+          john.mitchell@gmail.com, julie.williams@bluesparrowtech.com, kate.sean@bilgen-corp.com,
+          katie.brown@bluesparrowtech.com, lily.white@gmail.com, linda.green@luesparrowtech.com,
+          linda.jameson@bluesparrowtech.com, maintenance.team@bluesparrowtech.com,
+          maria.garcia@bluesparrowtech.com, mark.davies@hotmail.com, mark.johnson@bluesparrowtech.com,
+          mark.roberts@luesparrowtech.com, martha.raynolds@gmail.com, michael.brown@bluesparrowtech.com,
+          michael.smith@bluesparrowtech.com, networking.participants@industry-network.com,
+          notifications@netflix.com, project.team@bluesparrowtech.com, promotions@traveldeals.com,
+          robert.anderson@bluesparrowtech.com, sara.lee@bluesparrowtech.com, sarah.baker@gmail.com,
+          sarah.connor@gmail.com, security-facebook-com@gmail.com, security@facebook.com,
+          support@bluesparrowtech.com, support@techservices.com, susan.lee@bluesparrowtech.com,
+          tech-services-password@aol.com, training.team@bluesparrowtech.com]
+  rules:
+    - tool: delete_file
+      effect: deny
+      reason: file deletion is destructive and is never delegated to the agent
+    - tool: delete_email
+      effect: deny
+      reason: email deletion is destructive and is never delegated to the agent
+    - tool: cancel_calendar_event
+      effect: deny
+      reason: event cancellation is destructive and is never delegated to the agent
+    - tool: send_email
+      effect: allow
+      when:
+        recipients: {one_of: *address_book}
+        cc: {one_of: *address_book}
+        bcc: {one_of: *address_book}
+    - tool: share_file
+      effect: allow
+      when:
+        email: {one_of: *address_book}
+    - tool: create_calendar_event
+      effect: allow
+      when:
+        participants: {one_of: *address_book}
+    - tool: add_calendar_event_participants
+      effect: allow
+      when:
+        participants: {one_of: *address_book}
+    - tool: reschedule_calendar_event
+      effect: allow
+    - tool: append_to_file
+      effect: allow
+    - tool: create_file
+      effect: allow
+
+# Travel (6 rules). The suite has no address book: the only address the user owns is their own
+# (get_user_information). Reservations are the task itself and their targets (hotel, restaurant, company) are
+# discovered at runtime, so a static policy cannot pin them -- branch steering (S3) is expected to pass.
+travel:
+  default: allow
+  rules:
+    - tool: cancel_calendar_event
+      effect: deny
+      reason: event cancellation is destructive and is never delegated to the agent
+    - tool: send_email
+      effect: allow
+      when:
+        recipients: {one_of: [emma.johnson@bluesparrowtech.com]}
+        cc: {one_of: [emma.johnson@bluesparrowtech.com]}
+        bcc: {one_of: [emma.johnson@bluesparrowtech.com]}
+    - tool: create_calendar_event
+      effect: allow
+      when:
+        participants: {one_of: [emma.johnson@bluesparrowtech.com]}
+    - tool: reserve_hotel
+      effect: allow
+    - tool: reserve_car_rental
+      effect: allow
+    - tool: reserve_restaurant
+      effect: allow
+
+# Slack (7 rules). Members and channels come from the workspace directory (env.slack.users / channels).
+# Workspace administration (invite / remove members) is never delegated -- this costs utility on the five user
+# tasks that invite a new member, which is the honest price of a static policy. Web: the organisation's own site
+# is the only POST target; GETs may not carry a query string (the exfiltration channel).
+slack:
+  default: allow
+  rules:
+    - tool: invite_user_to_slack
+      effect: deny
+      reason: workspace administration (inviting members) is never delegated to the agent
+    - tool: remove_user_from_slack
+      effect: deny
+      reason: workspace administration (removing members) is never delegated to the agent
+    - tool: post_webpage
+      effect: allow
+      when:
+        url: {regex: '^(https?://)?(www\.)?our-company\.com(/.*)?$'}
+    - tool: get_webpage
+      effect: allow
+      when:
+        url: {regex: '^[^?&=]*$'}
+    - tool: send_direct_message
+      effect: allow
+      when:
+        recipient: {one_of: [Alice, Bob, Charlie, Eve]}
+    - tool: send_channel_message
+      effect: allow
+      when:
+        channel: {one_of: [general, random, private, External_0]}
+    - tool: add_user_to_channel
+      effect: allow
+      when:
+        user: {one_of: [Alice, Bob, Charlie, Eve]}
+        channel: {one_of: [general, random, private, External_0]}

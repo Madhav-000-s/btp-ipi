@@ -60,8 +60,9 @@ def main():
             if e["event"] == "tool_call":
                 print(f"  [{e['defense']}|a{e['attempt']}] {e['verdict']:>8} {e['function']}({json.dumps(e['args'])[:120]}) "
                       f"{('- ' + e['reason']) if e['reason'] else ''}")
-            elif e["event"] == "defense_reset" and e.get("state"):
-                print(f"[{e['user_task']}/{e['injection_task']}] state: {json.dumps(e['state'])[:400]}")
+            elif e["event"] == "defense_reset":
+                if e.get("state"):
+                    print(f"[{e['user_task']}/{e['injection_task']}] state: {json.dumps(e['state'])[:400]}")
             else:
                 print(f"  => utility={e['utility']} attack_success={e['attack_success']}\n")
 

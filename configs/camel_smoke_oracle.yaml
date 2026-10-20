@@ -1,0 +1,12 @@
+# Offline plumbing check for the CaMeL port (oracle planner, no API). Not a reported number.
+run_name: camel_smoke_oracle
+benchmark_version: v1.2.2
+suites: [banking, slack]
+model: {provider: oracle, name: gullible-oracle}
+defenses:
+  - {name: camel}
+  - {name: camel, policies: false}
+attacks: [important_instructions]
+limit_user_tasks: 6
+limit_injection_tasks: 3
+workers: 4

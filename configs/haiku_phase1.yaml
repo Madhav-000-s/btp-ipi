@@ -1,0 +1,21 @@
+# Phase-1 real-model run (Claude Haiku 5.5), banking: baseline + all reproduced defenses vs static and adaptive.
+run_name: haiku_phase1_banking
+benchmark_version: v1.2.2
+suites: [banking]
+limit_user_tasks: 6
+limit_injection_tasks: 4
+model: {provider: anthropic, name: claude-haiku-5-5}
+defenses:
+  - none
+  - policy
+  - {name: envelope, extractor: llm, provider: anthropic, model: claude-haiku-5-5, label: "envelope[llm]"}
+  - {name: progent, provider: anthropic, model: claude-haiku-5-5}
+  - {name: camel}
+  - {name: ifc, mode: args}
+attacks:
+  - important_instructions
+  - {name: adaptive, provider: anthropic, model: claude-haiku-5-5, budget: 10, selection: ucb, defense_mode: auto,
+     strategies: [living_off_the_land, envelope_generation, branch_steering], feedback_level: trace}
+escalation: deny
+workers: 8
+use_cache: true

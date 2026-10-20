@@ -64,6 +64,8 @@ Return a JSON list of tool names only."""
 
 # ------------------------------------------------------------------------------------------------
 def _cond_ok(value, cond: dict) -> bool:
+    if value is None:  # argument not supplied (e.g. optional cc/bcc): an absent sink sends nothing anywhere
+        return True
     vals = value if isinstance(value, list) else [value]
     for op, arg in cond.items():
         if op == "one_of" and not all(str(v).lower() in {str(a).lower() for a in arg} for v in vals):

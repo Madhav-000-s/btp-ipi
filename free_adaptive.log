@@ -1,0 +1,19 @@
+[free_adaptive_banking] 8 jobs, 0 already done, running 8
+  8/8
+Traceback (most recent call last):
+  File "<frozen runpy>", line 198, in _run_module_as_main
+  File "<frozen runpy>", line 88, in _run_code
+  File "C:\Users\sriva\OneDrive\Desktop\BTP_Project_AD\btp-ipi\src\ipi\cli.py", line 71, in <module>
+    main()
+  File "C:\Users\sriva\OneDrive\Desktop\BTP_Project_AD\btp-ipi\src\ipi\cli.py", line 46, in main
+    metrics.main([str(Path(load_config(a.config).get("out_dir", "results")) / load_config(a.config)["run_name"])])
+  File "C:\Users\sriva\OneDrive\Desktop\BTP_Project_AD\btp-ipi\src\ipi\metrics.py", line 68, in main
+    s = summarize(df, by)
+        ^^^^^^^^^^^^^^^^^
+  File "C:\Users\sriva\OneDrive\Desktop\BTP_Project_AD\btp-ipi\src\ipi\metrics.py", line 38, in summarize
+    benign = df[df.injection_task.fillna("") == ""]
+                ^^^^^^^^^^^^^^^^^
+  File "C:\Users\sriva\AppData\Roaming\Python\Python312\site-packages\pandas\core\generic.py", line 6299, in __getattr__
+    return object.__getattribute__(self, name)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'DataFrame' object has no attribute 'injection_task'. Did you mean: 'injection_task_0'?

@@ -35,10 +35,8 @@ def make_llm(provider: str, model: str, model_id: str | None = None, tool_delimi
         import openai
         from agentdojo.agent_pipeline.llms.openai_llm import OpenAILLM
 
-        client = openai.OpenAI(
-            base_url=os.environ["OPENAI_COMPAT_BASE_URL"],
-            api_key=os.environ.get("OPENAI_COMPAT_API_KEY", "EMPTY"),
-        )
+        _patch_openai_adapter()
+        client = compat_client()
         llm = OpenAILLM(client, model)
     else:
         from agentdojo.agent_pipeline.agent_pipeline import get_llm
@@ -49,6 +47,72 @@ def make_llm(provider: str, model: str, model_id: str | None = None, tool_delimi
 
 
 _USAGE_LOCK = threading.Lock()
+_THROTTLE_LOCK = threading.Lock()
+_LAST_CALL = [0.0]
+
+
+def throttle() -> None:
+    """Free API tiers cap requests per minute: keep >= OPENAI_COMPAT_MIN_INTERVAL seconds between calls."""
+    gap = float(os.environ.get("OPENAI_COMPAT_MIN_INTERVAL", "0") or 0)
+    if gap <= 0:
+        return
+    import time
+    with _THROTTLE_LOCK:
+        wait = _LAST_CALL[0] + gap - time.time()
+        if wait > 0:
+            time.sleep(wait)
+        _LAST_CALL[0] = time.time()
+
+
+class _ThrottledCompletions:
+    def __init__(self, inner):
+        self._inner = inner
+
+    def create(self, *a, **k):
+        throttle()
+        return self._inner.create(*a, **k)
+
+
+_SIGNATURES: dict[str, dict] = {}  # tool_call id -> provider extra_content (Gemini thought_signature)
+
+
+def _patch_openai_adapter() -> None:
+    """Gemini 3 (OpenAI-compatible endpoint) requires each tool call's thought_signature to be sent back in the next
+    request. AgentDojo's adapter drops unknown fields, so keep them keyed by tool-call id. After a cache replay the
+    signature is unknown: send Google's documented validator-skip value instead."""
+    import uuid
+
+    from agentdojo.agent_pipeline.llms import openai_llm as m
+    if getattr(m, "_ipi_patched", False):
+        return
+    to_ad, to_oa = m._openai_to_tool_call, m._tool_call_to_openai
+
+    def _to_ad(tc):
+        fc = to_ad(tc)
+        if fc.id is None:
+            fc = fc.model_copy(update={"id": f"call_{uuid.uuid4().hex[:12]}"})
+        extra = (tc.model_extra or {}).get("extra_content")
+        if extra:
+            _SIGNATURES[fc.id] = extra
+        return fc
+
+    def _to_oa(fc):
+        d = dict(to_oa(fc))
+        if os.environ.get("OPENAI_COMPAT_BASE_URL", "").startswith("https://generativelanguage"):
+            d["extra_content"] = _SIGNATURES.get(fc.id) or {"google": {"thought_signature": "skip_thought_signature_validator"}}
+        return d
+
+    m._openai_to_tool_call, m._tool_call_to_openai, m._ipi_patched = _to_ad, _to_oa, True
+
+
+def compat_client():
+    """OpenAI-compatible endpoint (Gemini, Groq, OpenRouter, local vLLM/Ollama) with free-tier-friendly retries.
+    429s are retried with exponential backoff by the openai client itself."""
+    import openai
+    c = openai.OpenAI(base_url=os.environ["OPENAI_COMPAT_BASE_URL"],
+                      api_key=os.environ.get("OPENAI_COMPAT_API_KEY", "EMPTY"), max_retries=12, timeout=180)
+    c.chat.completions = _ThrottledCompletions(c.chat.completions)
+    return c
 
 
 def log_usage(model: str, usage, role: str, stop_reason: str | None = None,

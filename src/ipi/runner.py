@@ -136,8 +136,14 @@ class Runner:
                         jobs += [Job(sname, u, i, a, d, r) for u in uts for i in its]
         return jobs
 
-    def _pipeline(self, defense, repeat: int):
+    def _pipeline(self, defense, repeat: int, suite: str = ""):
         mc = self.model_cfg
+        if getattr(defense, "builds_pipeline", False):
+            # Defenses that replace the agent loop (CaMeL) build their own pipeline; the returned agent element
+            # exposes begin_episode/ctx_extra like GuardedToolsExecutor so the episode bookkeeping is unchanged.
+            p, llm, agent = defense.build_pipeline(self, repeat, suite)
+            p.name = self.model_name
+            return p, llm, agent
         if mc["provider"] == "oracle":
             llm = GullibleOracleLLM()
         else:
@@ -156,27 +162,35 @@ class Runner:
         p.name = self.model_name
         return p, llm, executor
 
+    def make_agent_llm(self, repeat: int):
+        """The backbone LLM element (cached). Also used by pipeline-building defenses for their planner."""
+        mc = self.model_cfg
+        inner = make_llm(mc["provider"], mc["name"], mc.get("model_id"), mc.get("tool_delimiter", "tool"),
+                         mc.get("effort"))
+        return CachedLLM(inner, self.cfg.get("cache", "results/cache/llm.sqlite"), salt=f"r{repeat}")             if self.cfg.get("use_cache", True) else inner
+
     def _candidates(self, sname: str, user_task) -> list[str]:
         if sname not in self._cand:
             self._cand[sname] = _Candidates(self.suites[sname], None)
         return self._cand[sname].get_injection_candidates(user_task)
 
     # ---------------- one episode ----------------
-    def _episode(self, job: Job, attack_name: str, attempt: int, injections: dict[str, str]):
+    def _episode(self, job: Job, attack_name: str, attempt: int, injections: dict[str, str],
+                 attack_meta: dict | None = None):
         suite = self.suites[job.suite]
         ut = suite.get_user_task_by_id(job.user_task)
         it = suite.get_injection_task_by_id(job.injection_task) if job.injection_task else None
         defense = build_defense(job.defense)
-        pipeline, llm, executor = self._pipeline(defense, job.repeat)
+        pipeline, llm, executor = self._pipeline(defense, job.repeat, job.suite)
         ep = Episode(self.run_name, job.suite, job.user_task, job.injection_task, attack_name, defense.name,
                      self.model_name, job.repeat, attempt, self.sink)
         executor.begin_episode(ep)
         if getattr(defense, "needs_oracle", False):
             env = ut.init_environment(suite.load_and_inject_default_environment(injections))
             executor.ctx_extra["oracle_calls"] = ut.ground_truth(env)
-        if isinstance(llm, GullibleOracleLLM):
+        if hasattr(llm, "set_episode"):  # offline oracle agents (GullibleOracleLLM, CaMeL's oracle planner)
             llm.set_episode(ut, it, injections)
-        ep.log("episode_start", injections=injections)
+        ep.log("episode_start", injections=injections, attack_meta=attack_meta or {})
         t0 = time.perf_counter()
         err = ""
         try:
@@ -213,7 +227,8 @@ class Runner:
         for attempt in range(max(1, attack.budget)):
             visible = feedback if attack.feedback_level != "none" else []
             injections = attack.generate(task, spec, visible)
-            utility, success, calls, wall, err, defense = self._episode(job, attack.name, attempt, injections)
+            utility, success, calls, wall, err, defense = self._episode(job, attack.name, attempt, injections,
+                                                                        getattr(attack, "last_meta", None))
             total_wall += wall
             all_calls = calls
             last = (utility, success, err, defense.name)

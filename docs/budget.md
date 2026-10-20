@@ -14,3 +14,6 @@ API calls < episodes because the agent cache is keyed on the full conversation: 
 conversation unchanged replay the same sample (paired comparison across defenses, at no extra cost).
 
 **Running total: $0.79** (of $100 Anthropic credits)
+
+| 2026-10-20 | `free_static_banking` (banking, 8 user x 4 injection, 6 defenses incl. Progent, CaMeL, envelope[llm]) | gemini-3.5-flash-lite (free tier) | 218 | ~500 (daily cap) | - | $0 |
+| 2026-10-20 | `free_adaptive_banking` (policy vs UCB adaptive attacker, B = 10, 4 pairs; envelope[llm] cut off by quota) | gemini-3.1-flash-lite (free tier) | 40 valid | ~500 (daily cap) | - | $0 |

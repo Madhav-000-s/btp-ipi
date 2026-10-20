@@ -1,0 +1,9 @@
+run_name: free_smoke
+benchmark_version: v1.2.2
+suites: [banking]
+user_tasks: {banking: [user_task_0, user_task_3]}
+injection_tasks: {banking: [injection_task_0]}
+model: {provider: openai-compat, name: gemini-3.5-flash-lite}
+defenses: [none]
+attacks: [important_instructions]
+workers: 1

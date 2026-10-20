@@ -1,0 +1,22 @@
+# Phase-1 offline grid: every defense on all four suites, static + offline adaptive (UCB) attacker, B=3.
+# Gullible oracle agent: measures the GATE only, not model robustness. Zero cost.
+run_name: phase1_offline
+benchmark_version: v1.2.2
+suites: [banking, slack, travel, workspace]
+model: {provider: oracle, name: gullible-oracle}
+defenses:
+  - none
+  - {name: tool_filter, selector: oracle}
+  - policy
+  - {name: ifc, mode: context}
+  - {name: ifc, mode: args}
+  - {name: envelope, extractor: oracle, pin: all,   label: "envelope[oracle-all]"}
+  - {name: envelope, extractor: oracle, pin: query, label: "envelope[oracle-query]"}
+  - {name: camel}
+attacks:
+  - important_instructions
+  - {name: template_adaptive, budget: 3, selection: ucb}
+injection_tasks:
+  workspace: [injection_task_0, injection_task_1, injection_task_2, injection_task_3, injection_task_4, injection_task_5]
+escalation: deny
+workers: 8

@@ -1,0 +1,19 @@
+# Real-model run on a FREE API tier (Gemini via its OpenAI-compatible endpoint; .env sets the key + throttle).
+# Baseline validation + every reproduced defense vs AgentDojo's static attack. Banking slice sized for free quotas.
+run_name: free_static_banking
+benchmark_version: v1.2.2
+suites: [banking]
+limit_user_tasks: 8
+limit_injection_tasks: 4
+model: {provider: openai-compat, name: gemini-3.5-flash-lite}
+defenses:
+  - none
+  - policy
+  - {name: envelope, extractor: llm, provider: openai-compat, model: gemini-3.5-flash-lite, label: "envelope[llm]"}
+  - {name: progent, provider: openai-compat, model: gemini-3.5-flash-lite}
+  - {name: camel}
+  - {name: ifc, mode: args}
+attacks: [important_instructions]
+escalation: deny
+workers: 2
+use_cache: true

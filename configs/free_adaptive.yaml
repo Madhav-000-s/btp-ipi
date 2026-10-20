@@ -1,0 +1,17 @@
+# Real adaptive attack on a FREE tier: policy and envelope[llm] vs the LLM attacker, B = 10 (threat model), UCB.
+run_name: free_adaptive_banking
+benchmark_version: v1.2.2
+suites: [banking]
+limit_user_tasks: 2
+limit_injection_tasks: 2
+model: {provider: openai-compat, name: gemini-3.1-flash-lite}
+defenses:
+  - policy
+  - {name: envelope, extractor: llm, provider: openai-compat, model: gemini-3.1-flash-lite, label: "envelope[llm]"}
+attacks:
+  - {name: adaptive, provider: openai-compat, model: gemini-3.1-flash-lite, budget: 10, selection: ucb, defense_mode: auto,
+     strategies: [living_off_the_land, envelope_generation, branch_steering], feedback_level: trace}
+benign: false
+escalation: deny
+workers: 2
+use_cache: true

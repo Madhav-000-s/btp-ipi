@@ -52,10 +52,17 @@ def complete(prompt: str, *, provider: str, model: str, system: str = "", temper
             use_cache = False  # don't pin a refusal into the cache; a rerun gets a fresh sample
     elif provider in ("openai", "openai-compat"):
         import openai
-        client = openai.OpenAI() if provider == "openai" else openai.OpenAI(
-            base_url=os.environ["OPENAI_COMPAT_BASE_URL"], api_key=os.environ.get("OPENAI_COMPAT_API_KEY", "EMPTY"))
+        from ipi.llm import compat_client
+        client = openai.OpenAI(max_retries=12) if provider == "openai" else compat_client()
         msgs = ([{"role": "system", "content": system}] if system else []) + [{"role": "user", "content": prompt}]
-        r = client.chat.completions.create(model=model, messages=msgs, temperature=temperature, max_tokens=max_tokens)
+        # reasoning models (Gemini 3.x, o-series) spend part of max_tokens on hidden thinking
+        r = client.chat.completions.create(model=model, messages=msgs, temperature=temperature,
+                                           max_tokens=max(max_tokens, 16000) if provider == "openai-compat" else max_tokens)
+        if r.usage:
+            from types import SimpleNamespace
+            from ipi.llm import log_usage
+            log_usage(model, SimpleNamespace(input_tokens=r.usage.prompt_tokens, output_tokens=r.usage.completion_tokens),
+                      "aux", r.choices[0].finish_reason)
         text = r.choices[0].message.content or ""
     else:
         raise ValueError(f"textgen: unsupported provider {provider!r}")
