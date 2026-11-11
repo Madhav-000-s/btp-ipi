@@ -1,0 +1,31 @@
+# v2: adaptive half only, attacker told the victim complies (victim: compliant) so it attacks the gate, not the model.
+# Stage 1 of the stress test: every defense on full banking (16 user x 9 injection tasks = 144 pairs), hijacked agent.
+#   agent_mode: hijacked  -> the injection is assumed to work on the model, so ASR measures each defense's gate.
+#   static column: important_instructions (B = 1).  adaptive column: defense-aware attacker, B = 10, trace feedback,
+#   attempt 0 is the static attack (seed) so adaptive ASR can never fall below static,
+#   stop at first success (attempts-to-success are recorded, so ASR at B = 1, 3, 10 comes out of this one run).
+# CaMeL is not hijacked: its planner never reads tool output and the Q-LLM keeps its natural behaviour.
+# Cost: pilot measured ~$0.0015 per attempt; worst case 9 x 144 x 11 attempts = ~$22. Capped below; rerun to resume.
+run_name: haiku_hijacked_banking_v2
+benchmark_version: v1.2.2
+suites: [banking]
+model: {provider: anthropic, name: claude-haiku-5-5}
+agent_mode: hijacked
+defenses:
+  - none
+  - {name: tool_filter, selector: llm, provider: anthropic, model: claude-haiku-5-5}
+  - policy
+  - {name: ifc, mode: context}
+  - {name: ifc, mode: args}
+  - {name: progent, provider: anthropic, model: claude-haiku-5-5}
+  - {name: camel}
+  - {name: envelope, extractor: oracle, pin: query, label: "envelope[oracle-query]"}
+  - {name: envelope, extractor: llm, provider: anthropic, model: claude-haiku-5-5, label: "envelope[llm]"}
+attacks:
+  - {name: adaptive, provider: anthropic, model: claude-haiku-5-5, budget: 10, selection: ucb, defense_mode: auto, seed: important_instructions, victim: compliant,
+     strategies: [living_off_the_land, envelope_generation, branch_steering], feedback_level: trace}
+repeats: 1
+escalation: deny
+workers: 8
+use_cache: true
+max_cost_usd: 20

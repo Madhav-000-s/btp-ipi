@@ -1,0 +1,21 @@
+# Pilot for agent_mode: hijacked (injection assumed to work on the model; ASR measures the gate only).
+# 4 user x 3 injection tasks, 3 defenses, static + adaptive (B = 3). Expected cost: well under $0.50.
+run_name: haiku_hijacked_pilot
+benchmark_version: v1.2.2
+suites: [banking]
+limit_user_tasks: 4
+limit_injection_tasks: 3
+model: {provider: anthropic, name: claude-haiku-5-5}
+agent_mode: hijacked
+defenses:
+  - none
+  - policy
+  - {name: envelope, extractor: llm, provider: anthropic, model: claude-haiku-5-5, label: "envelope[llm]"}
+attacks:
+  - important_instructions
+  - {name: adaptive, provider: anthropic, model: claude-haiku-5-5, budget: 3, selection: ucb, defense_mode: auto,
+     strategies: [living_off_the_land, envelope_generation, branch_steering], feedback_level: trace}
+escalation: deny
+workers: 8
+use_cache: true
+max_cost_usd: 1.00

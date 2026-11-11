@@ -1,0 +1,16 @@
+# CaMeL (authors' code) on a real model: P-LLM code generation, Q-LLM extraction and policy checks end to end.
+# Needs: pip install -e ".[camel]"
+run_name: haiku_camel_smoke
+benchmark_version: v1.2.2
+suites: [banking]
+limit_user_tasks: 4
+limit_injection_tasks: 2
+model: {provider: anthropic, name: claude-haiku-5-5}
+defenses:
+  - camel
+  - {name: camel, policies: false}
+attacks: [important_instructions]
+repeats: 1
+escalation: deny
+workers: 4
+use_cache: true

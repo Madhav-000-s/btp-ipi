@@ -12,7 +12,6 @@ defenses:
   - {name: ifc, mode: args}
   - {name: envelope, extractor: oracle, pin: all,   label: "envelope[oracle-all]"}
   - {name: envelope, extractor: oracle, pin: query, label: "envelope[oracle-query]"}
-  - {name: camel}
 attacks:
   - important_instructions
   - {name: template_adaptive, budget: 3, selection: ucb}

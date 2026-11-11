@@ -20,7 +20,9 @@ def build_attack(spec: str | dict, suite, model_name: str) -> Attack:
     if n == "adaptive":
         a = AdaptiveLLMAttack(p["provider"], p["model"], p.get("strategies"), p.get("budget", 10),
                               p.get("feedback_level", "trace"), p.get("temperature", 0.7),
-                              p.get("defense_mode"), p.get("selection", "ucb"))
+                              p.get("defense_mode"), p.get("selection", "ucb"),
+                              AgentDojoAttack(p["seed"], suite, model_name) if p.get("seed") else None,
+                              p.get("victim"))  # victim: compliant -> pair with agent_mode: hijacked
     elif n == "template_adaptive":
         a = TemplateAdaptiveAttack(p.get("budget", 3), p.get("selection", "round_robin"),
                                    p.get("feedback_level", "trace"))

@@ -7,7 +7,7 @@
     - {name: envelope, extractor: oracle, pin: query}
     - {name: envelope, extractor: llm, provider: openai, model: gpt-4o-mini-2024-07-18, unpinned_untrusted: escalate}
     - {name: progent, provider: anthropic, model: claude-haiku-5-5}     # authors' secagent; update: false to freeze
-    - {name: camel}  /  {name: camel, policies: false}                  # authors' CaMeL (own pipeline)
+    - {name: camel}                     # authors' CaMeL; replaces the agent loop; policies: false / eval_mode: STRICT
     - {name: ifc, mode: args | context}                                 # FIDES/RTBAS-style taint baselines
 
 To add a defense (e.g. a CaMeL or Progent reproduction): implement ipi.defenses.base.Defense and register
@@ -44,14 +44,15 @@ BUILDERS = {
 }
 
 
+def _camel(p: dict) -> Defense:
+    from ipi.defenses.camel import CamelDefense  # imports the authors' camel package; builds its own pipeline
+    return CamelDefense(p.get("policies", True), p.get("eval_mode", "NORMAL"), p.get("max_attempts", 10),
+                        p.get("q_retries", 10))
+
+
 def _progent(p: dict) -> Defense:
     from ipi.defenses.progent import ProgentDefense  # imports the authors' secagent package
     return ProgentDefense(p["provider"], p["model"], p.get("update", True))
-
-
-def _camel(p: dict) -> Defense:
-    from ipi.defenses.camel_defense import CamelDefense  # imports the authors' camel package
-    return CamelDefense(p.get("policies", True), p.get("q_provider"), p.get("q_model"))
 
 
 def _ifc(p: dict) -> Defense:

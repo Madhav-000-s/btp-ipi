@@ -13,7 +13,7 @@ Full project context (motivation, threat model, defenses, attacker, monitor desi
 
 ```bash
 pip install -e ".[dev]"
-pytest -q                          # 32 tests, ~15 s, offline
+pytest -q                          # 35 tests, ~10 s, offline
 ipi run configs/quick.yaml         # banking grid, 5 defenses, offline, ~1 min
 ipi inspect results/quick --user-task user_task_0 --injection-task injection_task_1
 ```
@@ -121,11 +121,11 @@ Check how each reproduced paper scored this before comparing against their numbe
 
 ## Phase-1 completion (Oct 2026)
 
-- `defenses/camel_defense.py`: CaMeL via the authors' package (`pip install --no-deps "camel @ git+https://github.com/google-research/camel-prompt-injection@f083b6b"`), pipeline-building defense. `{name: camel}` / `{name: camel, policies: false}`.
+- `defenses/camel.py`: CaMeL via the authors' package (`pip install -e ".[camel]"`, pinned commit f083b6b plus pydantic-ai), pipeline-building defense; needs a real model (no oracle mode). `{name: camel}` / `{name: camel, policies: false}` / `{name: camel, eval_mode: STRICT}`. Tests: `tests/test_camel.py`.
 - `defenses/ifc.py`: FIDES/RTBAS-style taint baselines `ifc[context]`, `ifc[args]` (no released code; see docs/rtbas_fides.md).
 - `policies.yaml`: workspace / travel / slack rebuilt from user-owned env data only.
 - `attacks/adaptive.py`: UCB1 strategy selection with shaped reward; `defense_mode: progent | camel | auto`.
-- `analysis/plots.py`: Pareto, ASR@B, block-rule figures. Offline grid: `configs/phase1_offline.yaml` (10,840 jobs, 0 errors).
+- `analysis/plots.py`: Pareto, ASR@B, block-rule figures. Offline grid: `configs/phase1_offline.yaml` (CaMeL excluded: it needs a real model).
 - Real run, all defenses: `configs/haiku_phase1.yaml` (needs ANTHROPIC_API_KEY in .env).
 
 ## Rules

@@ -21,3 +21,22 @@ def test_payload_round_trips_in_every_vector(suite_name):
 def test_fill_escapes_per_vector():
     task = AttackTask("banking", "user_task_0", "", "injection_task_0", "", ["injection_bill_text"])
     assert Attack.fill(task, 'a "b"\nc') == {"injection_bill_text": r'a \"b\"\nc'}
+
+
+def test_adaptive_attacker_plays_the_seed_attack_first_then_its_own(monkeypatch):
+    from ipi.attacks import adaptive
+    from ipi.attacks.base import AttackTask, Feedback
+
+    class Seed:
+        name = "important_instructions"
+        def generate(self, task, spec, feedback):
+            return {"vec": "STATIC"}
+
+    monkeypatch.setattr(adaptive, "complete", lambda *a, **k: '{"payload": "LLM"}')
+    a = adaptive.AdaptiveLLMAttack("anthropic", "m", budget=3, seed=Seed())
+    task = AttackTask("banking", "user_task_0", "pay", "injection_task_0", "goal", ["vec"], [], [])
+    first = a.generate(task, {}, [])
+    assert first == {"vec": "STATIC"} and a.last_meta["strategy"] == "seed:important_instructions"
+    second = a.generate(task, {}, [Feedback(0, first, False, True, [], [], [])])
+    assert second == {"vec": "LLM"} and a.last_meta["strategy"] in adaptive.STRATEGIES
+    assert sum(a.bandit.counts.values()) == 0  # the seed attempt is not credited to any strategy
