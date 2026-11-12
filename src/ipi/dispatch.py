@@ -127,6 +127,9 @@ class GuardedToolsExecutor(BasePipelineElement):
                 msg = BLOCK_PREFIX
                 if self.reveal_block_reason and decision.reason:
                     msg += f" Reason: {decision.reason}"
+                advice = getattr(self.defense, "block_message", None)  # optional: what the agent should do next
+                if advice and (extra := advice(ctx, call, decision)):
+                    msg += " " + extra
                 results.append(self._tool_msg(tc, "", msg))
                 obs = Observation(call, decision, False, None, msg)
 

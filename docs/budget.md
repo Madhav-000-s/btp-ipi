@@ -25,5 +25,8 @@ conversation unchanged replay the same sample (paired comparison across defenses
 
 | 2026-11-11 | `haiku_hijacked_v2_pilot` (fix check: compliant-victim attacker + confirming hijack turn; none 9/9) | claude-haiku-5-5 | ~115 | - | - | $0.18 |
 | 2026-11-11 | `haiku_hijacked_banking_v2` (adaptive half rerun, working hijacked attacker, 9 defenses x 144 pairs, B = 10; 5 network errors in 1,440) | claude-haiku-5-5 | 1,440 | - | - | $14.77 |
+| 2026-11-11 | `haiku_envelope_v2` (envelope v2: record trust, user-stated, delegation, recovery; static + adaptive B = 10; 5 network errors; adaptive ASR 1/144 and 2/142 via assembled IBANs) | claude-haiku-5-5 | 608 jobs | - | - | $4.35 |
+| 2026-11-11 | `haiku_envelope_v3` (v2 + grounding rule; static + adaptive B = 10; adaptive ASR 0/142 for both extractors; 4 network errors) | claude-haiku-5-5 | 608 jobs | - | - | $4.25 |
+| 2026-11-12 | `haiku_envelope_v3_ablation` (oracle extractor, one v3 rule off per row x 5; static + adaptive B = 10; 38 jobs lost to connection drops and rerun, $0.53 of the total) | claude-haiku-5-5 | 1,520 jobs | - | - | $10.68 |
 
-**Running total (corrected): $33.49** of $100 Anthropic credits. Runs now print their own spend and stop at `max_cost_usd`.
+**Running total (corrected): $52.77** of $100 Anthropic credits. Runs now print their own spend and stop at `max_cost_usd`.

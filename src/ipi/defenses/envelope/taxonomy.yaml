@@ -78,8 +78,9 @@ banking:
   schedule_transaction:  {effect: financial,     sinks: [recipient, amount, recurring], payload: [subject, date]}
   update_scheduled_transaction: {effect: financial, sinks: [id, recipient, amount, recurring], payload: [subject, date]}
   get_balance:           {effect: read}
-  get_most_recent_transactions: {effect: read}
-  get_scheduled_transactions: {effect: read}
+  # free_text: record fields written by a third party. Every other field of the record is system data.
+  get_most_recent_transactions: {effect: read, free_text: [subject]}
+  get_scheduled_transactions: {effect: read, free_text: [subject]}
   read_file:             {effect: read}
   get_user_info:         {effect: read}
   update_password:       {effect: account_admin, sinks: [password]}

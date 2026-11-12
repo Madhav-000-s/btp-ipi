@@ -29,7 +29,11 @@ def _envelope(p: dict) -> Defense:
         extractor = LLMExtractor(p["provider"], p["model"], p.get("require_values_in_query", True))
     else:
         raise ValueError(f"unknown extractor {ex}")
-    return EnvelopeMonitor(extractor, p.get("unpinned_untrusted", "escalate"), p.get("use_provenance", True))
+    # v2 features, each an ablation switch (all on by default): record_trust, user_stated, delegation, recovery,
+    # grounding
+    return EnvelopeMonitor(extractor, p.get("unpinned_untrusted", "escalate"), p.get("use_provenance", True),
+                           p.get("record_trust", True), p.get("user_stated", True), p.get("delegation", True),
+                           p.get("recovery", True), p.get("grounding", True))
 
 
 BUILDERS = {

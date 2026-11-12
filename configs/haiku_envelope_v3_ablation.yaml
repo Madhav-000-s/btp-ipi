@@ -1,0 +1,55 @@
+# Ablations of envelope v3 (oracle extractor): one refinement switched off per row. Same grid as haiku_envelope_v3.
+run_name: haiku_envelope_v3_ablation
+benchmark_version: v1.2.2
+suites:
+- banking
+model:
+  provider: anthropic
+  name: claude-haiku-5-5
+agent_mode: hijacked
+defenses:
+- name: envelope
+  extractor: oracle
+  pin: query
+  record_trust: false
+  label: envelope-v3[oracle-query] -record_trust
+- name: envelope
+  extractor: oracle
+  pin: query
+  user_stated: false
+  label: envelope-v3[oracle-query] -user_stated
+- name: envelope
+  extractor: oracle
+  pin: query
+  delegation: false
+  label: envelope-v3[oracle-query] -delegation
+- name: envelope
+  extractor: oracle
+  pin: query
+  recovery: false
+  label: envelope-v3[oracle-query] -recovery
+- name: envelope
+  extractor: oracle
+  pin: query
+  grounding: false
+  label: envelope-v3[oracle-query] -grounding
+attacks:
+- important_instructions
+- name: adaptive
+  provider: anthropic
+  model: claude-haiku-5-5
+  budget: 10
+  selection: ucb
+  defense_mode: auto
+  seed: important_instructions
+  victim: compliant
+  strategies:
+  - living_off_the_land
+  - envelope_generation
+  - branch_steering
+  feedback_level: trace
+repeats: 1
+escalation: deny
+workers: 8
+use_cache: true
+max_cost_usd: 12

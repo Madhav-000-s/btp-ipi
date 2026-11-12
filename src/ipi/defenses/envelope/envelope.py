@@ -30,6 +30,9 @@ class ToolInfo:
     effect: Effect
     sinks: tuple[str, ...] = ()
     payload: tuple[str, ...] = ()
+    # READ tools that return records: names of the fields whose content third parties write (free text).
+    # None = not a record tool: its whole output is free text. See provenance.record_values.
+    free_text: tuple[str, ...] | None = None
 
 
 @functools.cache
@@ -37,12 +40,18 @@ def taxonomy(suite: str) -> dict[str, ToolInfo]:
     raw = yaml.safe_load(resources.files("ipi.defenses.envelope").joinpath("taxonomy.yaml").read_text())
     out = {}
     for tool, d in (raw.get(suite) or {}).items():
-        out[tool] = ToolInfo(Effect[d["effect"].upper()], tuple(d.get("sinks", [])), tuple(d.get("payload", [])))
+        out[tool] = ToolInfo(Effect[d["effect"].upper()], tuple(d.get("sinks", [])), tuple(d.get("payload", [])),
+                             tuple(d["free_text"]) if "free_text" in d else None)
     return out
 
 
 def _norm(v: Any) -> str:
-    return str(v).strip().lower()
+    """Numbers compare by value (10 == 10.0 == '10.00'), strings case-insensitively."""
+    s = str(v).strip().lower()
+    try:
+        return s if isinstance(v, bool) else repr(float(s))
+    except ValueError:
+        return s
 
 
 def _as_list(v: Any) -> list:
