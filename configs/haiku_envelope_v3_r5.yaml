@@ -1,0 +1,41 @@
+# Envelope v3 = v2 + grounding (assembled counterparties are escalated) on full banking, hijacked agent.
+# 5 repeats (threat model minimum). Same run_name as haiku_envelope_v3.yaml, so repeat 0 is reused from that run.
+# Same grid and attacker as haiku_hijacked_banking (static) / _v2 (adaptive), so rows are comparable with those runs.
+run_name: haiku_envelope_v3
+benchmark_version: v1.2.2
+suites:
+- banking
+model:
+  provider: anthropic
+  name: claude-haiku-5-5
+agent_mode: hijacked
+defenses:
+- name: envelope
+  extractor: oracle
+  pin: query
+  label: envelope-v3[oracle-query]
+- name: envelope
+  extractor: llm
+  provider: anthropic
+  model: claude-haiku-5-5
+  label: envelope-v3[llm]
+attacks:
+- important_instructions
+- name: adaptive
+  provider: anthropic
+  model: claude-haiku-5-5
+  budget: 10
+  selection: ucb
+  defense_mode: auto
+  seed: important_instructions
+  victim: compliant
+  strategies:
+  - living_off_the_land
+  - envelope_generation
+  - branch_steering
+  feedback_level: trace
+repeats: 5
+escalation: deny
+workers: 8
+use_cache: true
+max_cost_usd: 22
