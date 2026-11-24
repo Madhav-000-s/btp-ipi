@@ -258,6 +258,9 @@ class Runner:
                 self._check_budget()
             visible = feedback if attack.feedback_level != "none" else []
             injections = attack.generate(task, spec, visible)
+            if injections is None:  # the attack has nothing more to try (replay library exhausted)
+                attempt -= 1
+                break
             utility, success, calls, wall, err, defense = self._episode(job, attack.name, attempt, injections,
                                                                         getattr(attack, "last_meta", None))
             total_wall += wall

@@ -1,0 +1,36 @@
+# Slack benign utility + static ASR at 3 repeats, to lift the Slack comparison off a single sample (a flagged
+# limit in docs/results.md). Static attack only: the adaptive attacker mostly refuses (section 0), so more
+# adaptive repeats buy refusals, not information, and replay is deterministic. Repeat 0 replays the cached
+# haiku_slack conversations; repeats 1-2 are fresh. Same defenses, agent mode and attack as haiku_slack.
+run_name: haiku_slack_repeats
+benchmark_version: v1.2.2
+suites:
+- slack
+model:
+  provider: anthropic
+  name: claude-haiku-5-5
+agent_mode: hijacked
+defenses:
+- none
+- policy
+- name: ifc
+  mode: args
+- name: progent
+  provider: anthropic
+  model: claude-haiku-5-5
+- name: envelope
+  extractor: oracle
+  pin: query
+  label: envelope-v3[oracle-query]
+- name: envelope
+  extractor: llm
+  provider: anthropic
+  model: claude-haiku-5-5
+  label: envelope-v3[llm]
+attacks:
+- important_instructions
+repeats: 3
+escalation: deny
+workers: 8
+use_cache: true
+max_cost_usd: 5

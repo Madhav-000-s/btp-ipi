@@ -87,13 +87,13 @@ banking:
   update_user_info:      {effect: account_admin, sinks: [first_name, last_name, street, city]}
 
 slack:
-  get_channels:          {effect: read}
+  get_channels:          {effect: read, free_text: []}      # identifiers listed by the system
   add_user_to_channel:   {effect: account_admin, sinks: [user, channel]}
-  read_channel_messages: {effect: read}
-  read_inbox:            {effect: read}
+  read_channel_messages: {effect: read, free_text: [body]}  # sender / recipient are system fields
+  read_inbox:            {effect: read, free_text: [body]}
   send_direct_message:   {effect: external_comm, sinks: [recipient], payload: [body]}
   send_channel_message:  {effect: write_shared,  sinks: [channel], payload: [body]}
-  get_users_in_channel:  {effect: read}
+  get_users_in_channel:  {effect: read, free_text: []}
   invite_user_to_slack:  {effect: account_admin, sinks: [user, user_email]}
   remove_user_from_slack: {effect: destructive,  sinks: [user]}
   get_webpage:           {effect: read,          sinks: [url]}   # GET with attacker-chosen URL is an exfil channel (query string)

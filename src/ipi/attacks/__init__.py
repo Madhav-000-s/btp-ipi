@@ -6,11 +6,13 @@
     - {name: adaptive, provider: openai, model: gpt-4o-mini-2024-07-18, budget: 10,
        strategies: [living_off_the_land, envelope_generation, branch_steering], feedback_level: trace,
        selection: ucb, defense_mode: auto}         # defense_mode: null | progent | camel | auto
+    - {name: replay, budget: 10, seed: important_instructions}   # fixed payload library, same for every defense
 """
 from __future__ import annotations
 
 from ipi.attacks.adaptive import AdaptiveLLMAttack, TemplateAdaptiveAttack
 from ipi.attacks.base import Attack, AttackTask, Feedback
+from ipi.attacks.replay import ReplayAttack
 from ipi.attacks.static import AgentDojoAttack
 
 
@@ -23,6 +25,9 @@ def build_attack(spec: str | dict, suite, model_name: str) -> Attack:
                               p.get("defense_mode"), p.get("selection", "ucb"),
                               AgentDojoAttack(p["seed"], suite, model_name) if p.get("seed") else None,
                               p.get("victim"))  # victim: compliant -> pair with agent_mode: hijacked
+    elif n == "replay":
+        a = ReplayAttack(p.get("library", "data/replay_payloads.jsonl"), p.get("budget", 10),
+                         AgentDojoAttack(p["seed"], suite, model_name) if p.get("seed") else None)
     elif n == "template_adaptive":
         a = TemplateAdaptiveAttack(p.get("budget", 3), p.get("selection", "round_robin"),
                                    p.get("feedback_level", "trace"))

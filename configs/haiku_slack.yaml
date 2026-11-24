@@ -1,0 +1,47 @@
+# Second suite: full Slack (21 user x 5 injection tasks = 105 pairs), hijacked agent, same attacker as banking.
+# CaMeL, ifc[context] and tool_filter are left out to fit the budget.
+run_name: haiku_slack
+benchmark_version: v1.2.2
+suites:
+- slack
+model:
+  provider: anthropic
+  name: claude-haiku-5-5
+agent_mode: hijacked
+defenses:
+- none
+- policy
+- name: ifc
+  mode: args
+- name: progent
+  provider: anthropic
+  model: claude-haiku-5-5
+- name: envelope
+  extractor: oracle
+  pin: query
+  label: envelope-v3[oracle-query]
+- name: envelope
+  extractor: llm
+  provider: anthropic
+  model: claude-haiku-5-5
+  label: envelope-v3[llm]
+attacks:
+- important_instructions
+- name: adaptive
+  provider: anthropic
+  model: claude-haiku-5-5
+  budget: 10
+  selection: ucb
+  defense_mode: auto
+  seed: important_instructions
+  victim: compliant
+  strategies:
+  - living_off_the_land
+  - envelope_generation
+  - branch_steering
+  feedback_level: trace
+repeats: 1
+escalation: deny
+workers: 8
+use_cache: true
+max_cost_usd: 13

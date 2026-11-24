@@ -20,13 +20,26 @@ def main():
     out = Path(a.out or Path(a.run) / "figs"); out.mkdir(parents=True, exist_ok=True)
     ben, att = df[df.injection_task == ""], df[df.injection_task != ""]
 
-    st = att[att.attack == a.static].groupby("defense").attack_success.mean() * 100
-    ut = ben.groupby("defense").utility.mean() * 100
-    fig, ax = plt.subplots(figsize=(6.4, 4.6))
-    for d in st.index:
-        ax.scatter(st[d], ut.get(d, float("nan")), s=60); ax.annotate(d, (st[d], ut.get(d, 0)), fontsize=8, xytext=(4, 4), textcoords="offset points")
-    ax.set_xlabel(f"ASR % ({a.static})"); ax.set_ylabel("Benign utility %"); ax.set_title("Security-utility trade-off")
-    ax.set_xlim(-3, 103); ax.set_ylim(-3, 103); ax.grid(alpha=.3); fig.tight_layout(); fig.savefig(out / "pareto.png", dpi=160)
+    # Security axis: the static attack if present, else whatever single attack the run has (e.g. replay).
+    atk = a.static if (att.attack == a.static).any() else (att.attack.iloc[0] if not att.empty else a.static)
+    st = att[att.attack == atk].groupby("defense").attack_success.mean() * 100
+    # Benign utility if the run has benign episodes; replay runs have none, so fall back to utility-under-attack.
+    ut = (ben.groupby("defense").utility.mean() * 100) if not ben.empty else (att[att.attack == atk].groupby("defense").utility.mean() * 100)
+    ylab = "Benign utility %" if not ben.empty else "Utility under attack %"
+    fig, ax = plt.subplots(figsize=(7.2, 5.0))
+    # de-overlap labels: nudge each annotation vertically when points share an (x, y) neighbourhood
+    placed = []
+    for d in sorted(st.index, key=lambda d: (st[d], ut.get(d, 0))):
+        x, y = st[d], ut.get(d, float("nan"))
+        ax.scatter(x, y, s=70, zorder=3)
+        dy = 6
+        while any(abs(x - px) < 9 and abs((y + dy) - py) < 5 for px, py in placed):
+            dy += 11
+        ax.annotate(d, (x, y), fontsize=8, xytext=(6, dy), textcoords="offset points",
+                    arrowprops=dict(arrowstyle="-", lw=.4, color="grey") if dy > 6 else None)
+        placed.append((x, y + dy))
+    ax.set_xlabel(f"ASR % ({atk})"); ax.set_ylabel(ylab); ax.set_title("Security-utility trade-off")
+    ax.set_xlim(-4, max(103, st.max() + 6)); ax.set_ylim(-3, 103); ax.grid(alpha=.3); fig.tight_layout(); fig.savefig(out / "pareto.png", dpi=160)
 
     ad = att[att.attack.str.startswith("adaptive")]
     if not ad.empty:

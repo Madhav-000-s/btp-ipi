@@ -30,4 +30,12 @@ conversation unchanged replay the same sample (paired comparison across defenses
 | 2026-11-12 | `haiku_envelope_v3_ablation` (oracle extractor, one v3 rule off per row x 5; static + adaptive B = 10; 38 jobs lost to connection drops and rerun, $0.53 of the total) | claude-haiku-5-5 | 1,520 jobs | - | - | $10.68 |
 | 2026-11-12 | `haiku_envelope_v3` repeats 1-4 (`configs/haiku_envelope_v3_r5.yaml`; 5 repeats in total, ASR 0/720 static and 0/720 adaptive for both extractors; 8 jobs lost to connection drops and rerun) | claude-haiku-5-5 | 2,436 jobs | - | - | $16.40 |
 
-**Running total (corrected): $69.17** of $100 Anthropic credits. Runs now print their own spend and stop at `max_cost_usd`.
+| 2026-11-22 | `haiku_slack_pilot` twice (6 pairs, 6 defenses; first pass exposed two `get_webpage` gaps in the envelope, second pass after the fix). An earlier attempt failed on a rejected API key at $0 | claude-haiku-5-5 | 180 jobs | - | - | $0.59 |
+| 2026-11-22 | `haiku_slack` (full Slack, 105 pairs, 6 defenses, static + adaptive B = 10, hijacked; 3 connection errors rerun) | claude-haiku-5-5 | 1,386 jobs | - | - | $6.81 |
+| 2026-11-23 | `haiku_baseline_repeats` (policy + Progent on banking, 3 repeats, static + adaptive; 0 errors) | claude-haiku-5-5 | 1,824 jobs | - | - | $6.71 |
+| 2026-11-23 | `haiku_replay_pilot` (6 banking pairs, 8 defenses, replay attack). Spend not captured; estimated from the full run's per-job cost | claude-haiku-5-5 | 48 jobs | - | - | ~$0.25 |
+| 2026-11-23 | `haiku_replay_banking` (144 pairs, 8 defenses, replay attack, hijacked; no attacker calls; 0 errors) | claude-haiku-5-5 | 1,152 jobs | - | - | $5.36 |
+| 2026-11-23 | `haiku_replay_slack` (105 pairs, 6 defenses, replay attack, hijacked; 0 errors) | claude-haiku-5-5 | 630 jobs | - | - | $2.01 |
+| 2026-11-25 | `haiku_slack_repeats` (Slack benign + static only, 6 defenses, 3 repeats, to lift Slack off one sample; no adaptive, so no refusal spend; 0 errors) | claude-haiku-5-5 | 2,268 jobs | - | - | $1.61 |
+
+**Running total: about $92.51** of $100 Anthropic credits ($23.34 of the $35 authorised on 2026-11-22). Previous total: $69.17.

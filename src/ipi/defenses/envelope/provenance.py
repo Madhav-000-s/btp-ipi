@@ -55,10 +55,18 @@ def canon(v: Any) -> str:
 _NUM = re.compile(r"(?<![\w.])\d+(?:\.\d+)?(?![\w]|\.\d)")
 
 
+def norm(v: Any) -> str:
+    """Form used for tracing: case-folded, and for URLs without the scheme or a trailing slash. A model that
+    reads 'www.site.com' and calls the tool with 'https://www.site.com/' has copied the value, not made it."""
+    s = str(v).strip().lower()
+    s = re.sub(r"^https?://", "", s)
+    return s.rstrip("/") or s
+
+
 def stated_by_user(leaf: Any, user_query: str) -> bool:
     """True if the user literally wrote this value: a number equal to a number in the query, or a string of at
     least MIN_LEN characters that appears in the query as a whole phrase (not inside a longer word)."""
-    s, q = str(leaf).strip().lower(), user_query.lower()
+    s, q = norm(leaf), user_query.lower()
     if not s:
         return False
     try:
@@ -73,7 +81,8 @@ def stated_by_user(leaf: Any, user_query: str) -> bool:
 
 def record_values(text: str, free_text: tuple[str, ...]) -> set[str]:
     """Canonical leaves of the structured (non-free-text) fields of a record-returning tool's output.
-    Empty if the output is not a mapping / list of mappings."""
+    A list of scalars (channel names, user names) is a list of system identifiers. Empty if the output is
+    not a mapping / list."""
     try:
         data = yaml.safe_load(text)
     except yaml.YAMLError:
@@ -91,7 +100,7 @@ def record_values(text: str, free_text: tuple[str, ...]) -> set[str]:
         elif v is not None and str(v).strip():
             out.add(canon(v))
 
-    if isinstance(data, dict) or (isinstance(data, list) and all(isinstance(x, dict) for x in data)):
+    if isinstance(data, (dict, list)):
         walk(data)
     return out
 
@@ -103,7 +112,7 @@ def sources_of(value: Any, user_query: str, tool_outputs: list[tuple[str, str]],
     q = user_query.lower()
     out: dict[str, list[str]] = {}
     for leaf in _leaves(value):
-        s = leaf.strip().lower()
+        s = norm(leaf)
         srcs = []
         if records:
             c = canon(leaf)

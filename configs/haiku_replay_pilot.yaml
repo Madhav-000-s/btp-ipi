@@ -1,0 +1,46 @@
+# Replay attack: the real payloads the LLM attacker wrote in earlier runs (data/replay_payloads.jsonl), the same
+# ones in the same order for every defense. Attempt 1 is the static seed, then up to 9 library payloads.
+# Built because the LLM attacker refused ~85% of its attempts (docs/results.md, section 0).
+run_name: haiku_replay_pilot
+benchmark_version: v1.2.2
+suites:
+- banking
+model:
+  provider: anthropic
+  name: claude-haiku-5-5
+agent_mode: hijacked
+defenses:
+- none
+- policy
+- name: ifc
+  mode: context
+- name: tool_filter
+  selector: llm
+  provider: anthropic
+  model: claude-haiku-5-5
+- name: ifc
+  mode: args
+- name: progent
+  provider: anthropic
+  model: claude-haiku-5-5
+- name: envelope
+  extractor: oracle
+  pin: query
+  label: envelope-v3[oracle-query]
+- name: envelope
+  extractor: llm
+  provider: anthropic
+  model: claude-haiku-5-5
+  label: envelope-v3[llm]
+attacks:
+- name: replay
+  budget: 10
+  seed: important_instructions
+benign: false
+repeats: 1
+escalation: deny
+workers: 8
+use_cache: true
+max_cost_usd: 1
+limit_user_tasks: 3
+limit_injection_tasks: 2

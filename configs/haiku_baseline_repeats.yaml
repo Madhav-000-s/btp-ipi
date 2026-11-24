@@ -1,0 +1,36 @@
+# Repeats for the two strongest published-style baselines on banking (policy, Progent), so the comparison with
+# envelope v3 (5 repeats) is not one sample against five. Same grid, attacker and agent mode as
+# haiku_hijacked_banking (static) / _v2 (adaptive). 3 repeats to fit the remaining budget.
+run_name: haiku_baseline_repeats
+benchmark_version: v1.2.2
+suites:
+- banking
+model:
+  provider: anthropic
+  name: claude-haiku-5-5
+agent_mode: hijacked
+defenses:
+- policy
+- name: progent
+  provider: anthropic
+  model: claude-haiku-5-5
+attacks:
+- important_instructions
+- name: adaptive
+  provider: anthropic
+  model: claude-haiku-5-5
+  budget: 10
+  selection: ucb
+  defense_mode: auto
+  seed: important_instructions
+  victim: compliant
+  strategies:
+  - living_off_the_land
+  - envelope_generation
+  - branch_steering
+  feedback_level: trace
+repeats: 3
+escalation: deny
+workers: 8
+use_cache: true
+max_cost_usd: 13

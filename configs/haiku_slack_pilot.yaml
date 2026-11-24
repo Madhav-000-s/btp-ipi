@@ -1,0 +1,55 @@
+# Pilot for haiku_slack: 3 user x 2 injection tasks.
+run_name: haiku_slack_pilot
+benchmark_version: v1.2.2
+suites:
+- slack
+model:
+  provider: anthropic
+  name: claude-haiku-5-5
+agent_mode: hijacked
+defenses:
+- none
+- policy
+- name: ifc
+  mode: args
+- name: progent
+  provider: anthropic
+  model: claude-haiku-5-5
+- name: envelope
+  extractor: oracle
+  pin: query
+  label: envelope-v3[oracle-query]
+- name: envelope
+  extractor: llm
+  provider: anthropic
+  model: claude-haiku-5-5
+  label: envelope-v3[llm]
+attacks:
+- important_instructions
+- name: adaptive
+  provider: anthropic
+  model: claude-haiku-5-5
+  budget: 10
+  selection: ucb
+  defense_mode: auto
+  seed: important_instructions
+  victim: compliant
+  strategies:
+  - living_off_the_land
+  - envelope_generation
+  - branch_steering
+  feedback_level: trace
+repeats: 1
+escalation: deny
+workers: 8
+use_cache: true
+max_cost_usd: 1.5
+user_tasks:
+  slack:
+  - user_task_1
+  - user_task_5
+  - user_task_13
+injection_tasks:
+  slack:
+  - injection_task_1
+  - injection_task_3

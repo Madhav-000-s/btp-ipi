@@ -30,14 +30,18 @@ already opened may be justified. Each is an ablation switch.
                 declaration in the taxonomy (files, web pages) are free text as a whole.
   delegation    If the user named a source ("update my address from 'address-change.txt'") and the agent read
                 exactly that source, its content may fill an unpinned sink - but only for effects that stay in
-                the user's own domain (WRITE_SELF, ACCOUNT_ADMIN). Sinks of outbound effects (FINANCIAL,
+                the user's own domain (WRITE_SELF, ACCOUNT_ADMIN). A READ sink (a URL to fetch) may be filled
+                the same way, but only from an internal record source the user named (a message in the channel
+                they pointed at), never from a web page: links are not followed transitively. Sinks of outbound effects (FINANCIAL,
                 EXTERNAL_COMM, WRITE_SHARED) and of DESTRUCTIVE ones never take free-text values: a counterparty
                 must come from the user or from a record.
   grounding     Taint tracking only flags a value it can find in a tool output, so a payload that has the agent
                 build the value ("join 'US1330' + '0000...'", "reverse this string") slips past it: the final
-                string appears nowhere. For outbound and destructive effects an unpinned non-numeric sink value
-                must therefore be positively grounded - written by the user or a field of a record. Numbers
-                are exempt (amounts are legitimately computed: "19.5% of what I paid").
+                string appears nowhere. For outbound and destructive effects, and for reads that take an
+                address (a URL to fetch), an unpinned non-numeric sink value must therefore be positively
+                grounded - written by the user, a field of a record, or found in a source the user named.
+                Numbers are exempt (amounts are legitimately computed: "19.5% of what I paid"). URLs are
+                traced without scheme or trailing slash, so adding "https://" does not launder a value.
   recovery      A blocked call tells the agent that the action was not authorized by the user and to carry on
                 with the original request, instead of leaving it to give up on the user's task.
 """
@@ -180,19 +184,25 @@ class EnvelopeMonitor(Defense):
         if self.record_trust:
             records = [provenance.record_values(x, tax[t].free_text)
                        if t in tax and tax[t].free_text is not None else set() for t, _, x in results]
-        named = {t for t, a, _ in results if self._user_named(ctx, t, a)} \
-            if self.delegation and info.effect in DELEGABLE else set()
+        # Sources the user named. For a READ sink (a URL to fetch) only internal record sources count: a link in
+        # a message of the channel the user pointed at may be followed, a link found on a web page may not.
+        internal_only = info.effect == Effect.READ
+        named = []
+        if self.delegation and (info.effect in DELEGABLE or internal_only):
+            named = [i for i, (t, a, _) in enumerate(results) if self._user_named(ctx, t, a)
+                     and (not internal_only or (t in tax and tax[t].free_text is not None))]
         for arg in sinks:
             if _empty(call.args.get(arg)):
                 continue
             srcs = provenance.sources_of(call.args[arg], ctx.user_query, outputs, records)
             tainted = provenance.untrusted_only(srcs)
             if named:  # value found only in sources the user named, feeding a non-outbound effect
-                low = {leaf: str(leaf).strip().lower() for leaf in tainted}
+                low = {leaf: provenance.norm(leaf) for leaf in tainted}
                 tainted = [leaf for leaf in tainted
-                           if not any(low[leaf] in x.lower() for t, a, x in results if self._user_named(ctx, t, a))]
+                           if not any(low[leaf] in results[i][2].lower() for i in named)]
             reason = f"value of '{arg}' ({tainted[0]!r}) traces only to tool output" if tainted else ""
-            if not tainted and self.grounding and rule == "unpinned_sink"                     and info.effect not in DELEGABLE and info.effect != Effect.READ:
+            if not tainted and self.grounding and info.effect not in DELEGABLE:
+                # a READ sink is a fetch with a caller-chosen address: an assembled URL is as outbound as an IBAN
                 tainted = [leaf for leaf, s in srcs.items() if s == ["model"] and not _numeric(leaf)]
                 if tainted:
                     reason = (f"value of '{arg}' ({tainted[0]!r}) appears neither in the user's request nor in "
